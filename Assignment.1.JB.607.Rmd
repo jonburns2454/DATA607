@@ -1,0 +1,79 @@
+---
+title: "607.Assignment1.JB2"
+author: "Jonathan Burns"
+date: "2023-09-10"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+```
+
+**PACKAGES USED**
+
+```{r echo=TRUE, message=FALSE}
+library(tidyverse)
+library(openintro)
+library("dplyr")
+library(grid)
+library(pander)
+```
+
+**LOADING DATASET FROM GITHUB**
+
+```{r Load in data set from Github, echo=TRUE, message=FALSE, warning=FALSE}
+urlfile="https://raw.githubusercontent.com/jonburns2454/DATA607/main/data_aging_congress.csv"
+
+usCongressAges<-read_csv(url(urlfile))
+usCongressAges <- as.tibble(usCongressAges)
+```
+
+**OVERVIEW:** [Congress Today Is Older Than It's Ever Been] (<https://fivethirtyeight.com/features/aging-congress-boomers/>)
+
+The article linked above is referring to recent congressional hearing with the CEO of Tik Tok and how at least three members of Congress referred to the app as "Tic Tac". However, I wanted to look at this data because of the recent news about Dianne Feinstein and Mitch McConnell. As well as, many referring to the 117th Congress as the oldest Congress since 1789. Thus, I was interested in looking into the age distribution of each party, and attempting to see which one was older on average, as well as, which party had the higher ends of the age distribution overall (Because the longer you are in Congress the more likely you are to hold a high rank and sit on crucial committees).
+
+**GLIMPSE \| SUBSETTING**
+
+```{r | GLIMPSE | SUBTSETTING, echo=TRUE}
+glimpse(usCongressAges)
+
+congressTable <- subset(usCongressAges, select = c('chamber', 'party_code', 'age_years'))
+
+
+rename_with(congressTable, toupper)
+```
+
+**PLOTTING WITH GGPLOT**
+
+```{r Filtering and GGPLOTS, echo=TRUE}
+
+congressTable |>
+filter(party_code == "100" | party_code == "200") |>
+
+ggplot(congressTable,mapping = aes(factor(party_code),age_years)) +
+  geom_violin(adjust = 0.5, fill = "snow1", color = "mintcream", trim = FALSE) +
+  geom_boxplot(width = 0.1) +
+  labs(
+    x = "Party Alignment",
+    y = "Age of Congressional Members",
+    title = "Which Congresional party is older?",
+    subtitle = "DEM OR REP"
+      ) +
+  scale_x_discrete(labels = c('Democrat', 'Republican'))
+```
+
+**Conclusion:**
+
+I decided to utilize the GEOM_VIOLIN() + GEOM_BOXPLOT() to evaluate the data set I previously subset. The violin plot visualized all of the questions I set out to answer. The median, density (distribution), and maximum. Looking solely at the maximum its clear that the Republican Party has the oldest members of Congress, with a few coming close to 90 years old. I was able to get a clearer idea about median age of each party by adding in the boxplot. This, along with the distribution shows that the Republicans have a slightly higher median age over the Republicans.
+
+For future study: I think that there is a lot of potential with this data set and a lot of things someone may be able to visualize. One thing I would like to do is join this data set with different voting counts on bills to see how older Congress people vote on average compared to younger Representatives and Senators. Additionally, this data can be split into House and Senate.
+
+**TABULAR OUTPUT**
+
+```{r Pander Tablular Output }
+
+pandoc.table(head(congressTable[, 1:3], 6), justify = c('right', 'center', 'left'))
+
+
+```
