@@ -1,0 +1,104 @@
+---
+title: "SQL & R - Assignment2"
+author: "Jonathan Burns"
+date: "2023-09-16"
+output: html_document
+---
+
+**Packages needed**
+
+```{r message=FALSE, warning=FALSE}
+library(odbc)
+library(DBI)
+library(tidyverse)
+library(openintro)
+library(RSQL)
+library(dplyr)
+library(RODBC)
+library(missForest)##Tried other more advanced imputation but had to move on
+library(mice)##Tried other more advanced imputation but had to move on
+library(data.table)
+library(pander)
+```
+
+
+**Pulling from my SQL Server (Microsoft)** 
+*I also tried finding rown means but the zero values presented an issue.*
+```{r}
+
+connection <- odbcConnect("jbdb")
+view(connection)
+
+df <- sqlQuery(connection, "select * from dbo.movies_table")
+
+df <- df %>% 
+    group_by(movie_name) %>% 
+    rowwise() %>% 
+    mutate(mean_score = mean(shawn, laura, christina, chris, jon))
+```
+
+*I then moved onto replace the zeros with NA's. but this also presented an issue with rowmeans*
+```{r}
+
+df <- df %>% 
+    group_by(movie_name) %>% 
+    rowwise() %>% 
+    mutate(mean_score = mean(shawn, laura, christina, chris, jon, na.rm = T)) %>% 
+    mutate_all(~na_if(., 0))
+view(df)
+```
+
+
+*Found a way to see the missing data better*
+```{r}
+df_numeric <- df %>%
+  select(shawn, laura, christina, chris, jon, movie_name)
+md.pattern(df_numeric)
+```
+**Imputation Work** 
+*Using this simple imputation which is based off the mean value it generates not the median, I was able to form a educated guess for the NA values present within 'shawn', 'chris', 'christina', and 'jon' columns (laura did not need imputation).*
+
+```{r}
+imputed_shawn <- data.frame(
+  original = df_numeric$shawn,
+  imputed_zero = replace(df_numeric$shawn, is.na(df_numeric$shawn), 0),
+  imputed_mean = replace(df_numeric$shawn, is.na(df_numeric$shawn), mean(df_numeric$shawn, na.rm = TRUE)),
+  imputed_median = replace(df_numeric$shawn, is.na(df_numeric$shawn), median(df_numeric$shawn, na.rm = TRUE))
+)
+imputed_shawn
+
+imputed_chris <- data.frame(
+  original = df_numeric$chris,
+  imputed_zero = replace(df_numeric$chris, is.na(df_numeric$chris), 0),
+  imputed_mean = replace(df_numeric$chris, is.na(df_numeric$chris), mean(df_numeric$chris, na.rm = TRUE)),
+  imputed_median = replace(df_numeric$chris, is.na(df_numeric$chris), median(df_numeric$chris, na.rm = TRUE))
+)
+imputed_chris
+
+imputed_christina <- data.frame(
+  original = df_numeric$christina,
+  imputed_zero = replace(df_numeric$christina, is.na(df_numeric$christina), 0),
+  imputed_mean = replace(df_numeric$christina, is.na(df_numeric$christina), mean(df_numeric$christina, na.rm = TRUE)),
+  imputed_median = replace(df_numeric$christina, is.na(df_numeric$christina), median(df_numeric$christina, na.rm = TRUE))
+)
+imputed_christina
+
+imputed_jon <- data.frame(
+  original = df_numeric$jon,
+  imputed_zero = replace(df_numeric$jon, is.na(df_numeric$jon), 0),
+  imputed_mean = replace(df_numeric$jon, is.na(df_numeric$jon), mean(df_numeric$jon, na.rm = TRUE)),
+  imputed_median = replace(df_numeric$jon, is.na(df_numeric$jon), median(df_numeric$jon, na.rm = TRUE))
+)
+imputed_jon
+
+imputed_values <- data.frame(df_numeric$movie_name, df_numeric$laura,imputed_shawn$imputed_mean, imputed_chris$imputed_mean, imputed_christina$imputed_mean, imputed_jon$imputed_mean)
+
+setnames(imputed_values, old = c('df_numeric.movie_name', 'df_numeric.laura', 'imputed_shawn.imputed_mean', 'imputed_chris.imputed_mean', 'imputed_christina.imputed_mean', 'imputed_jon.imputed_mean'), new = c('movie_names', 'laura', 'shawn_imp_mean', 'chris_imp_mean', 'christina_imp_mean', 'jon_imp_mean'))
+
+head(imputed_values)
+
+```
+```{r}
+pandoc.table(imputed_values, style=  'rmarkdown', split.table = Inf)
+```
+
