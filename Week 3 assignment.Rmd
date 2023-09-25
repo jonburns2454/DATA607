@@ -1,0 +1,109 @@
+---
+title: "Week 3 assignment 607"
+author: "Jonathan Burns"
+date: "2023-09-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(tidyverse)
+library(stringr)
+```
+
+
+**Question 1 code** 
+*provide code that identifies the majors that contain either "DATA" or "STATISTICS"*
+```{r}
+college_majors_df <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/college-majors/all-ages.csv")
+```
+
+
+```{r}
+college_majors_df[str_detect(college_majors_df$Major, "DATA")|str_detect(college_majors_df$Major,"STATISTICS"),]
+        
+```
+**Question 2 code**
+
+```{r}
+
+q2_original = '[1] "bell pepper"  "bilberry"     "blackberry"   "blood orange"
+[5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+[9] "elderberry"   "lime"         "lychee"       "mulberry"    
+[13] "olive"        "salal berry"'
+
+str_view(q2_original)
+print(q2_original)
+```
+
+```{r}
+q2_final <- unlist(str_extract_all(q2_original, pattern = "[a-z]+")) 
+print(q2_final)
+
+
+```
+
+**Question 3**
+
+(.)\1\1
+
+*This expression takes a character (.) and then copies that captured number two separate times (\1\1)*
+
+"(.)(.)\\2\\1"
+
+*This expression has two captured groups and reverses the output*
+
+(..)\1
+
+*This expression will take two characters at once and simply repeat them again.*
+
+"(.).\\1.\\1"
+
+*This expression looks to take a single character, match it with the first character and then repeat it using 1\\, match the character and then repeat it again*
+
+"(.)(.)(.).*\\3\\2\\1"
+
+*The expression looks like it is taking three characters (.)(.)(.) and then repeating it in reverse order using a x multiplier*
+
+
+
+**Question 4**
+
+Start and end with the same character.
+
+**Part 1** 
+```{r}
+list <- c('print', 'hello', 'world', 'mom', 'yippy', 'dead', 'harsh', 'essence', 'median', 'mode', 'sandwich', 'standarddeviation', 'eigenvalue', 'pcaanalysis', 'church', 'eleven')
+
+```
+
+Should be 6 words that print after this expression is done running
+```{r}
+str_view(list, "^(.)(.*\\1$)")
+
+
+```
+**Part 2**
+Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.)
+
+```{r}
+str_view(list, "([A-Za-z][A-Za-z]).*\\1")
+```
+**Part 3**
+Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.)
+*I added a few more words to see if it would take more than 3, for multiple letters and it worked*
+```{r}
+str_view(list, "([A-Za-z]).*\\1.*\\1")
+```
+
+
+
+
+
+
+
+
+
