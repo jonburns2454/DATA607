@@ -1,0 +1,86 @@
+---
+title: "Project 1 607"
+author: "Jonathan Burns"
+date: "2023-10-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+packages used
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(stringr)
+library(readr)
+
+
+```
+
+
+import raw data from github and parse it out. This set of code gets rid of most of the data I dont need. Keeping only Total PTS, Round 1-7, the state, the name and the pre-tournament rating. The Pre and Post are still joined I will need to figure that out.
+```{r}
+my_data_raw <- read.csv('https://raw.githubusercontent.com/jonburns2454/DATA607/main/project%201%20data.txt', header = F, skip = 3)
+
+chess_data <- str_split(my_data_raw[,], "-", simplify = T)
+
+#print(chess_table[1:20])
+```
+
+Pulling all of the data we need
+```{r}
+#Names
+Names <- unlist(str_extract_all(chess_data[,], "\\D+\\w+[[:space:]]\\w+([[:space:]]\\w+)*", simplify = T))
+
+Names <- gsub('[^[:alnum:] ]', '', Names)#Removed the "|" from the front of the names
+
+Names <- Names[!apply(Names == "", 1, all),]
+
+print(Names)
+
+#State data
+States <- unlist(str_extract_all(my_data_raw, "[[:upper:]]{2}(?=\\s\\|)"))
+
+#Total Points
+Total_Points <- unlist(str_extract_all(my_data_raw[,], "\\d\\.\\d"))
+
+#Pre-rating
+
+Pre_Ratings <- unlist(str_extract_all(my_data_raw, "[R:]([[:space:]]+\\d+)"))
+
+Pre_Ratings <- gsub('[^[:alnum:] ]', '', Pre_Ratings)
+
+print(Pre_Ratings) 
+
+
+#Data.Frame Creation + Average Pre Chess Rating of Opponents
+Tournament_df <- data.frame(Names, States, Total_Points, Pre_Ratings)
+
+Tournament_df <- Tournament_df %>% 
+    add_column(Pair_Num = 1:64) %>% 
+    relocate(Pair_Num, .before = Names)
+    
+
+```
+
+
+Opponents - I started this section but I could not for the life of me figure out the final opponent rating. 
+```{r}
+
+# Opponents <- unlist(str_extract_all(my_data_raw[,], "\\d{2}+[|]|\\d{1}+[|]", simplify = T))
+# 
+# Opponents_Matrix <- matrix(ncol = 7)
+# 
+# Opponents <- unlist(str_extract_all(Opponents[,], "\\d+", simplify=TRUE))
+# Opponents_Filled_Matrix <- Opponents[rowSums(Opponents=="")!=ncol(Opponents)]
+# 
+# print(Opponents)
+
+
+
+```
+
+```{r}
+data.table::data.table(Tournament_df)
+```
+
