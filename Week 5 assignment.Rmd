@@ -1,0 +1,95 @@
+---
+title: "Data 607 Week 5 HW"
+author: "Jonathan Burns"
+date: "2023-10-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+```
+**1.**
+Creating the CSV, exporting it to Github
+```{r}
+initial_csv <- rbind(c(NA, NA, "Los Angeles", "Phoenix", "San Diego", "San Fransisco", "Seattle"),
+                     c("ALASKA", "on time", 497, 221, 212, 503, 1841),
+                     c(NA, "delayed", 62, 12, 20, 102, 305),
+                     c("AM WEST", "on time", 694, 4840, 383, 320, 201),
+                     c(NA, "delayed", 117, 415, 65, 129, 61))
+write.table(initial_csv, file = "Initial_csv_Data", sep = ",", col.names = F, row.names = F)
+```
+
+**2.**
+Here I will transform the data using tidyr and dplyr. I will start this by going from wide to long data. Note, I do not need to load any extra packages because tidyr and dplyr are located within tidyverse.
+Importing CSV from GitHub into a usable table
+```{r}
+csv_week5 <- read.csv("https://raw.githubusercontent.com/jonburns2454/DATA607/main/Initial_csv_Data")
+
+
+```
+
+Start by renaming the first two columns
+```{r}
+csv_week5 <- csv_week5 %>% 
+    rename("Airline" = 1, "Status" = 2)
+```
+
+Dealing with NAs | This replaces the NA figs under 'Airline' with their respective airline classifications to avoid issues throuhout the rest of the problem
+```{r}
+csv_week5 <- csv_week5 %>% 
+    fill(Airline, .direction = c("down"))
+```
+
+
+**shift to long data format**
+This takes the data and utilized the 'pivot_longer' funtion in tidyR to change the wide data into 'Arrival.City' and 'Number.Of.Flights'. After this I selected the entire df using Airline:Number.Of.Flights and then arranged these figures by status in decending order by the airline. The next funtion this uses is spread, which separates number of flights into ontime and delayed. Lastly, the rename function changes the finiky 'on time' to on.time, to make analysis easier.
+```{r}
+long_airline_data <- csv_week5 %>% 
+    pivot_longer(cols =  3:7, names_to = "Arrival.City",
+                 values_to = "Number.Of.Flights") %>% 
+    select(Airline:Number.Of.Flights) %>% 
+    arrange(Airline, desc(Status), 'Arrival City') %>% 
+    spread(Status, Number.Of.Flights) %>% 
+    rename(on.time = 'on time')
+data.table::data.table(long_airline_data)
+```
+
+**3.**
+Comparing general mean of "ontime flights" and "delayed flights" bewteen the two 
+```{r}
+On_time_data <- long_airline_data %>% 
+    group_by(Airline) %>% 
+    summarize(mean_ontime = mean(on.time))
+delayed_data <- long_airline_data %>% 
+    group_by(Airline) %>% 
+    summarize(mean_delayed = mean(delayed))   
+    
+```
+
+Plotting and comparing on.time flights to delayed flights at the two airports
+
+**On time**
+```{r}
+ggplot(On_time_data, aes(x = Airline, y = mean_ontime, color = Airline)) +
+    geom_bar(stat = "identity")
+```
+
+**Delayed**
+
+```{r}
+ggplot(delayed_data, aes(x = Airline, y = mean_delayed, color = Airline)) +
+    geom_bar(stat = "identity")
+```
+
+**Conclusion**
+The data shows that AM West has both more On time flights and delayed arrivals than compared with ALASKA.
+One thing to note however, is that AM west appears to run many more flights than Alaska but the difference between the mean delayed flight of the airlines is fairly small in comparison to how many more flights AM west runs.
+
+
+
+
