@@ -1,0 +1,132 @@
+---
+title: "Updated-Project.1"
+author: "Jonathan Burns"
+date: "2023-10-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(tidyverse)
+library(stringr)
+library(readr)
+library(knitr)
+```
+
+
+```{r}
+link <- 'https://raw.githubusercontent.com/jonburns2454/DATA607/main/project%201%20data.txt'
+
+chess_df <- read.csv(file = link, col.names = F)
+
+head(chess_df)
+
+```
+
+```{r}
+
+tournament_data <- matrix(unlist(chess_df), byrow = T)
+
+player_data <- tournament_data[seq(4, length(tournament_data), 3)]
+head(player_data)
+
+
+
+game_data <- tournament_data[seq(5, length(tournament_data), 3)]
+head(game_data)
+
+```
+The following data is extracted using regex, with the goal of adding it into a dataframe
+```{r}
+#ID
+ID <- unlist(as.numeric(str_extract(player_data, '\\d+')))
+head(ID)
+#Names
+Names <- unlist(str_extract_all(player_data, "\\D+\\w+[[:space:]]\\w+([[:space:]]\\w+)*", simplify = T))
+
+Names <- gsub('[^[:alnum:] ]', '', Names)#Removed the "|" from the front of the names
+
+Names <- Names[!apply(Names == "", 1, all),]
+
+head(Names)
+
+#State data
+States <- unlist(str_extract_all(game_data, "[[:upper:]]{2}(?=\\s\\|)"))
+head(States)
+
+#Total Points
+Total_Points <- unlist(str_extract_all(player_data, "\\d\\.\\d"))
+head(Total_Points)
+
+#Pre-rating
+Pre_Ratings <- unlist(str_extract_all(game_data, "[R:]([[:space:]]+\\d+)"))
+Pre_Ratings <- gsub('[^[:alnum:] ]', '', Pre_Ratings) #Removes : from the vector
+
+#Rounds
+
+Round <- unlist(str_extract_all(player_data, "[W|L|D]\\s{2,}\\d+", simplify = T))
+Round <- str_remove_all(Round, "W|L|D")
+
+num_rows <- length(Round) %/% 7
+
+opponent_matrix <- matrix(Round, nrow = num_rows, byrow = F)
+
+
+head(opponent_matrix)
+
+
+
+
+   
+```
+
+
+PreChessRating loop
+```{r}
+OppRating <- data.frame()  # Create an empty data frame
+Pre_Ratings <- as.numeric(Pre_Ratings)
+
+for (row in 1:nrow(opponent_matrix)) {
+    nOpps <- 0
+    sumOpps <- 0
+    
+    for (col in 1:ncol(opponent_matrix)) { 
+        if(opponent_matrix[row, col] != "") {
+            opp.index <- as.numeric(opponent_matrix[row, col])
+            sumOpps <- sumOpps + Pre_Ratings[opp.index]
+            nOpps <- nOpps + 1
+        }
+    }
+    
+    # Check if nOpps is greater than 0 
+    avg <- if (nOpps > 0) sumOpps/nOpps else NA
+    
+    # put the results into a df
+    OppRating <- rbind(OppRating, data.frame(avg))
+}
+
+
+colnames(OppRating) <- c('OppAvg')
+
+
+print(OppRating)
+
+```
+Create the final dataframe and table for presentation
+```{r}
+Tournament_Results <- data.frame(Names, States, Total_Points, Pre_Ratings, OppRating)
+
+write.csv(Tournament_Results, 'tournament.csv', append = F)
+
+kable(Tournament_Results,  format = "html", align = "clcccc", digits = 0)
+
+```
+
+
+
+
+
