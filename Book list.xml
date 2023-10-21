@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FantasyBooks>
+    <Book>
+          <BookTitle> The Three-Body Problem </BookTitle>
+          <Author(s)> Liu Cixin, Ken Lui </Author>         
+          <YearPublished> 2008 </YearPublished>
+          <Publisher> Chongqing Press </Publisher>           
+          <ISBN> 978-7-5366-9293-0</ISBN>          
+    </Book>
+      <Book>
+          <BookTitle> The Return of the King </BookTitle>
+          <Author(s)> J. R. R. Tolkien </Author>         
+          <YearPublished> 1955 </YearPublished>
+          <Publisher> George Allen & Unwin </Publisher>           
+          <ISBN> 978-0-6180-0224-5</ISBN>              
+     </Book>     
+     <Book>
+          <BookTitle> A Dance with Dragons </BookTitle>
+          <Author(s)> George R. R. Martin </Author>         
+          <YearPublished> 2011 </YearPublished>
+          <Publisher> Voyager Books </Publisher>           
+          <ISBN> 978-0-5538-0147-7</ISBN>    
+     </Book>
+</FantasyBooks>
