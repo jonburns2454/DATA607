@@ -1,0 +1,98 @@
+---
+title: "Week 7 Assignment"
+author: "Jonathan Burns"
+date: "2023-10-21"
+output: html_document
+---
+
+##Rpubs Source code:
+
+HTML - https://github.com/jonburns2454/DATA607/blob/main/Book%20List.html
+
+XML - https://github.com/jonburns2454/DATA607/blob/main/Book%20list.xml
+
+JSON - https://github.com/jonburns2454/DATA607/blob/main/Book%20list.JSON
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Packages Used
+```{r}
+library(tidyverse)
+library(RCurl)
+library('XML')
+library(rjson)
+library(jsonlite)
+library(kableExtra)
+library(DT)
+```
+
+##HTML list to DataFrame
+
+```{r}
+books_HTML_url <- getURL('https://raw.githubusercontent.com/jonburns2454/DATA607/main/Book%20List.html')
+
+books_HTML <- readHTMLTable(books_HTML_url, header = T)
+
+```
+
+```{r}
+class(books_HTML)
+```
+
+Creating a more readable df and renaming it from NULL to books_HTML
+
+```{r}
+class(books_HTML$`NULL`)
+
+books_html_DF <- books_HTML$`NULL`
+class(books_html_DF)
+
+html_table <- datatable(books_html_DF)
+html_table
+```
+
+##XML Book list --\> Data.Frame
+
+```{r}
+books_XML_URL <- getURL("https://raw.githubusercontent.com/jonburns2454/DATA607/main/Book%20list.xml")
+
+books_XML <- xmlParse(books_XML_URL)
+
+```
+
+```{r}
+books_root <- xmlRoot(books_XML)
+
+books_root_DF <- xmlToDataFrame(books_root)
+
+xlm_table <- datatable(books_root_DF)
+
+xlm_table
+
+```
+
+##JSON List --\> Data.Frame
+
+```{r}
+json_books_url <- getURL('https://raw.githubusercontent.com/jonburns2454/DATA607/main/Book%20list.JSON')
+
+json_books <- fromJSON(json_books_url)
+
+class(json_books$FantasyBooks)
+
+json_df <- json_books$FantasyBooks
+
+json_table <- datatable(json_df)
+
+json_table
+```
+
+##Conclusion
+
+```         
+- While the three data methods are collected and structured differently the end result is effectively the same.
+- If you look at the three tables I made at the end of each section, there is no convievable difference between the data presentation either.
+```
