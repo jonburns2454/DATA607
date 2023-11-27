@@ -1,0 +1,160 @@
+---
+title: "Project 4 JB"
+author: "Jonathan Burns"
+date: "2023-11-26"
+output: html_document
+---
+
+For project 4 I found a more recent spam dataset from Kaggle which was last updated around 5 years ago.
+
+It can be found here: https://www.kaggle.com/datasets/venky73/spam-mails-dataset/data
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tm)
+library(NLP)
+library(caTools)
+```
+
+##Load data from Github
+I moved the downloaded Kaggle dataset into my github, making things much more accessible.
+
+```{r}
+spam_ham_ds <- read.csv("https://raw.githubusercontent.com/jonburns2454/DATA607/main/spam_ham_dataset.csv")
+```
+
+##Overview of data
+label refers to whether an email is ham or spam, while label_number pins a binary value to whether an email is ham or spam. span is denoted by 1 and ham by zero.
+```{r}
+head(spam_ham_ds)
+```
+```{r}
+str(spam_ham_ds)
+
+spam_ham_ds$label <- as.character(spam_ham_ds$label)#Data imported incorrectlym need to change characteristics myself
+spam_ham_ds$text <- as.character(spam_ham_ds$text)#Data imported incorrectlym need to change characteristics myself
+spam_ham_ds$label_num <- as.integer(spam_ham_ds$label_num)#Data imported incorrectlym need to change characteristics myself 
+```
+
+
+Lets see how many 1s and 0s are present in the data set
+```{r}
+table(spam_ham_ds$label_num)
+```
+Visualizing our breakdown:
+Ham is much more common in the data set
+```{r,message= FALSE}
+spam_ham_ds$label_num <- as.character(spam_ham_ds$label_num)
+spam_ham_ds %>% 
+  count(label_num) %>% 
+  ggplot(aes(fct_reorder(`label_num`, `n`), `n`))+
+      geom_bar(stat = "identity", fill = "coral")+
+  xlab("SPAM | HAM")+
+  ylab("Frequency in the emails")+
+  ggtitle("1: SPAM | 2: HAM")
+  theme_minimal()
+```
+
+##Creating a corpus
+Now I will need to utlize the tm package to set up a usable corpus.
+
+This website was relied upon for the creation of my corpus
+:https://rpubs.com/tsholliger/301914
+```{r}
+corpus_sh <- VCorpus(VectorSource(spam_ham_ds$text))
+
+corpus_sh <- tm_map(corpus_sh, content_transformer(tolower))
+
+corpus_sh <- tm_map(corpus_sh, PlainTextDocument)
+
+corpus_sh <- tm_map(corpus_sh, removePunctuation)
+
+#The last thing I need to do is remove stopwords
+
+corpus_sh <- tm_map(corpus_sh, removeWords, stopwords("en"))
+
+```
+
+```{r}
+sh_matrix <- DocumentTermMatrix(corpus_sh)
+sh_matrix
+```
+removing where terms of x (sh_matrix) have at least a sparse percentage of 50%.
+```{r}
+sparse_rm = removeSparseTerms(sh_matrix, 0.80)
+sparse_rm
+```
+
+```{r}
+sh_df = as.data.frame(as.matrix(sparse_rm))
+sh_df <- sh_df %>% 
+  select(-1)#Removing 2000, because its in reference to a year rather than the other words present in the corpus
+```
+
+```{r}
+colnames(colSums(sh_df))
+```
+
+```{r}
+sh_df$spam = spam_ham_ds$label_num
+
+sh_df$spam <- as.integer(sh_df$spam)
+```
+
+#now the 1499 spam messages we had above are located within the dataset
+```{r}
+sort(colSums(sh_df))
+```
+
+```{r}
+sort(colSums(subset(sh_df, "label_num" == 0)))
+```
+```{r}
+sort(colSums(subset(sh_df, "label_num" == 1)))
+```
+For the prediction model I will be utilizing the package "caTools"
+
+Taking 90% of the constructed dataframe.
+```{r}
+sample_1 <- sample.split(sh_df$spam, .90)
+```
+
+
+```{r}
+train_samp <- subset(sh_df, sample_1 == T)
+```
+
+```{r}
+test_samp <- subset(sh_df, sample_1 == F)
+```
+
+```{r}
+spam_p1 <- glm(spam ~., data = train_samp, family = "binomial")
+```
+
+```{r}
+summary(spam_p1)
+```
+```{r}
+spam_predicted <- predict(spam_p1, type = "response")
+
+```
+
+```{r}
+table(train_samp$spam, spam_predicted > 0.05)
+```
+At the current outset, the model is 70.6% accurate when looking for spam
+```{r}
+(1953+1334)/nrow(train_samp)
+```
+##Conclusion:
+The model created can be used with the spam mails dataset from Kaggle to predict how new documents can be classified. At the current confidence level 95%, the model is trained to  be 70.6% accurate when evaluating spam and non spam mail. I tinkered with different sample sizes and confidence levels for awhile. However around 70% seemed to be the best I could get.
+
+
+
+
+
