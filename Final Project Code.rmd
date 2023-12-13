@@ -1,0 +1,316 @@
+---
+output:
+  reprex::reprex_document:
+    venue: "gh"
+    advertise: FALSE
+    session_info: TRUE
+    style: TRUE
+    comment: "#;-)"
+    tidyverse_quiet: FALSE
+    std_out_err: TRUE
+knit: reprex::reprex_render
+---
+
+
+## This data started in an excel document downloaded from Kaggle, I then 
+
+## MONGODB connection information
+
+Public Key:
+mypsqeek
+
+Private Key:
+ad00fd45-9d82-4b50-89fe-e9eac52eeed3
+
+```{r}
+install.pandoc()
+```
+
+```{r, eval = requireNamespace("tidyverse", quietly = TRUE)}
+library(tidyverse)
+library(mongolite)
+library(maps)
+library(ggmap)
+library(sf)
+library(rnaturalearth)
+library(countrycode)
+library(ggrepel)
+library(stringr)
+library(DataExplorer)
+library(skimr)
+library(httpgd)
+library(rmarkdown)
+library(installr) ##Pandoc and knitting issues
+```
+
+```{r}
+
+connection_string = 'mongodb+srv://admin:320w49thst@dbquake.p12jh8r.mongodb.net/'
+quake_collection = mongo(collection="607", db="QUAKEDATA", url=connection_string)
+
+```
+
+## Pulling in the MONGODB data
+ ```{r}
+ paste("The total documents in the selected column is:",quake_collection$count())
+ ```
+
+```{r} 
+quake_collection$iterate()$one()
+```
+```{r}
+
+quake_collection$find(limit = 3)
+```
+
+## Making my mongodb db into a dataframe in R
+```{r}
+quake <- as_tibble(quake_collection$find())
+```
+
+
+##  Pulling in the poverty data from GitHub
+```{r}
+pov <- read.csv("https://raw.githubusercontent.com/owid/poverty-data/main/datasets/pip_dataset.csv", header = T)
+```
+
+```{r}
+pov_cl <- pov %>% 
+    select(country, gini, reporting_level, welfare_type, survey_year) %>% 
+    filter(reporting_level == "national" & welfare_type == "income") %>% 
+    rename("region"=country)
+```
+
+
+## The poverty data is broken down via consumption and income. For the purposes I will be using income only.
+```{r}
+unique(pov_cl$welfare_type)
+```
+
+```{r}
+mapdata <- map_data("world")
+```
+
+
+```{r}
+quake <- quake %>% 
+rename("Lat"=2, "Long"=3)
+```
+
+
+##  Gini to the magnitude of data?
+
+
+```{r}
+map_data("world") %>% 
+ggplot() +
+geom_polygon(aes(x=long, y=lat, group=group))
+```
+
+```{r}
+map_data("world") %>% 
+ggplot() +
+borders(fill = "gray")
+```
+
+```{r}
+map_data("world") %>% 
+ggplot() +
+geom_polygon(aes(x=long, y=lat, group=group), color = "gray85", fill = "gray80")+
+geom_point(data = quake, 
+            aes(x = Long, y = Lat), 
+            color = "purple1", alpha = 0.5)+
+scale_size_continuous(range = c(1,5)) 
+labs(size = "Magnitude")+
+ggtitle("Earthquakes Worldwide in 2023")+
+theme_minimal()
+```
+
+
+```{r}
+sa_countries <- c("Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname", "Uruguay", "Venezuela" )
+
+map_data_sa <- map_data("world") %>% 
+filter(region %in% sa_countries) %>% 
+ggplot(aes(x = long, y = lat)) +
+geom_polygon(aes(group=group, fill = region, color = "#838383"))+
+theme_minimal()+
+theme(legend.position = "none")
+
+map_data_sa
+
+```
+
+
+```{r}
+labels_data_sa <-
+    map_data("world") %>% 
+    filter(region %in% sa_countries) %>% 
+    group_by(region) %>% 
+    summarise(long = mean(long), lat = mean(lat))
+```
+```{r}
+theme_xy_blank <- theme(
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank(), 
+  axis.ticks = element_blank(),
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.background = element_rect(fill = "#3b727c", color = "black")
+)
+```
+
+## Note, I tried isolating South American countries to see if I could look into continents further but I pulled back. I will leave the SA map generation in though.
+```{r}
+sa_labeled_map <- map_data_sa +
+  geom_text(data = labels_data_sa, 
+  aes(label = region), 
+  size = 3.5, hjust = 0.5, angle = -45)+
+  theme_xy_blank  
+
+sa_labeled_map
+```
+
+
+## Moving away from mapping into statistical analysis
+
+## Changing the two columns of lands and Country into one (for matching purposes)
+```{r}
+countries_world <- c("Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe")
+
+countries_world <- toupper(countries_world)
+quake$Country <- paste(quake$Country, quake$Lands, sep = ", ")
+```
+
+
+## This funtion runs through my quake dataset and should extract any column variables that match any country from my list.
+```{r}
+find_first_match <- function(text, search_list) {
+  match <- str_extract(text, paste(search_list, collapse = "|"))
+  if (!is.na(match)) {
+    return(match)
+  } else {
+    return(NA)
+  }
+}
+```
+## Where I applied the function
+```{r}
+quake$Country <- mapply(find_first_match, quake$Country, list(countries_world), SIMPLIFY = FALSE)
+```
+
+
+## Cleaned data for grouping
+```{r}
+quake_cleaned <- quake %>% 
+  select(2, 3, 4, 5, 7)
+
+
+```
+
+## Removing non-country matches
+```{r}
+quake_cleaned <- quake_cleaned[!is.na(quake_cleaned$Country), , drop = FALSE]
+```
+
+
+## This shows that in the matching process 125 of the 195 total countries are present within the data.
+```{r}
+unique(quake_cleaned$Country)
+```
+
+
+```{r}
+quake_cleaned$Country = as.character(quake_cleaned$Country)
+
+highest_mag <- quake_cleaned %>% 
+    select(everything()) %>%
+    group_by(Country) %>%
+    summarise(mean_mag = mean(Magnitude))
+
+```
+
+
+## Using survey year 2016 because it gas the most data and preparing data for the join
+```{r}
+gini<- pov_cl %>% 
+  filter(survey_year == 2016) %>% 
+  mutate(region = toupper(region)) %>% 
+  distinct(region, .keep_all = TRUE) 
+  
+
+```
+
+## Now that the data transformation is out of the way I want to run some statistical analysis
+```{r}
+gini_magnitude <- inner_join(gini, highest_mag, by = c("region"="Country"))
+```
+
+```{r}
+DataExplorer::plot_correlation(gini_magnitude)
+DataExplorer::plot_density(gini_magnitude)
+DataExplorer::plot_histogram(gini_magnitude)
+```
+
+```{r}
+skim(gini_magnitude)
+```
+
+## Frequency Plot Magnitude
+
+```{r}
+gini_magnitude %>% 
+  ggplot(aes(x = mean_mag))+
+  geom_histogram()
+```
+
+## Frequency Plot GINI
+
+```{r}
+gini_magnitude %>% 
+  ggplot(aes(x = gini))+
+  geom_histogram()
+```
+
+
+## Linear Regression
+```{r}
+gini_mag_rg <- lm(gini ~ mean_mag, data = gini_magnitude)
+```
+
+```{r}
+summary(gini_mag_rg)
+```
+
+
+```{r}
+gini_magnitude %>% 
+  ggplot(aes(x = mean_mag, y = gini, size = mean_mag, color = "palevioletred1", fill = "gray81"))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(
+    x = "Mean Magnitude Across Countries",
+    y = "GINI COEFFICIENT",
+    title = "Inequality ~ Magnitude Scale"
+  )
+```
+
+
+
+
+## World earthquake map
+
+```{r}
+map_data("world") %>% 
+ggplot() +
+geom_polygon(aes(x=long, y=lat, group=group), color = "gray85", fill = "gray80")+
+geom_point(data = quake_cleaned, 
+            aes(x = Long, y = Lat), 
+            color = "purple1", alpha = 0.5)+
+scale_size_continuous(range = c(1,5))+ 
+labs(size = "Magnitude")+
+ggtitle("Earthquakes Worldwide in 2023 (Only Countries)")+
+theme_minimal()
+```
